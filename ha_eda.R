@@ -6,6 +6,7 @@ library(stat242) # For data
 
 # Load Data -------------------------------------------------------------
 
+project_data <- stat242::project_data
 View(project_data)
 
 # Calculate summary statistics for categorical variables ----------------
@@ -53,3 +54,4 @@ pop_stats <- project_data %>%
   group_by(country) %>% 
   summarize(non_net_users_mean = mean(non_net_users),
             non_net_users_sd = sd(non_net_users))
+
