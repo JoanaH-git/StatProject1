@@ -1,3 +1,7 @@
+# Title: "Project Part III"
+# Author: "Lisa Ha"
+# Date: "11/18/21"
+
 # Load packages --------------------------------------------------------------
 
 library(ggplot2)
@@ -12,14 +16,7 @@ source(here::here("ha_data-viz.R"))
 get_correlation(data = project_data %>% group_by(continent), 
                 formula = life_exp ~ net_users)
 
-# Given the sample sizes (count from the continents data) all of these are 
-# actually enough to say there is a correlation between gdp per capita and 
-# life expectancy. For the continents where it is lower, there more significant
-# contributing factors.
-
 # Build model ----------------------------------------------------------------
-# I'll focus on Europe (you can focus on one continent/country as well) since
-# it had a high correlation value and relatively large sample size 
 
 asia <- project_data %>% 
   filter(continent == "Asia")
@@ -63,12 +60,9 @@ ggplot(asia, aes(net_users, life_exp, size = population/10^6))+
   theme_solarized_2()+ # from ggthemes
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 
-# This suggests it is one country. Let's remove it and rerun the analysis 
-# to see if it improves. 
+# Rerunning model - China
 
 asia %>% filter(life_exp < 50)
-
-# China
 
 asia_2 <- asia %>% 
   filter(country != "China")
