@@ -257,6 +257,26 @@ This test has a p-value of $2.93 \times 10^{-105}$ which is essentially 0. Then 
 Compared to the globe as a whole, Europe has a higher average life expectancy and a higher proportion of countries above the global average life expectancy. Additionally, life expectancy is strongly correlated to GDP per capita. Our linear model showed a correlation of 0.78 and did fairly well at predicting data from 2020 - over a decade beyond the models original domain. 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #Group Data
 group_eda:
 ```{r}
@@ -344,6 +364,26 @@ continentFive <- project_data %>%
   pivot_wider(names_from = name,
               values_from = c(phoneFive, populationFive))
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 StatTeam6_lm
 ```{r}
 # Load packages --------------------------------------------------------------
@@ -439,6 +479,38 @@ ggplot(project_data_2, aes(net_users, life_exp, size = population/10^6))+
 
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 StatTeam6_data-viz
 ```{r}
 #Group Submission Part II
@@ -527,6 +599,31 @@ ggplot(project_data, aes(year, num_phones))+
 ggplot(project_data, aes(year, net_users))+
   geom_point()
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 StatTeam6_nhst
 ```{r}
