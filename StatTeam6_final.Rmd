@@ -20,29 +20,24 @@ library(infer)
 library(ggplot2)
 library(tidyr)
 library(kableExtra)
+library(patchwork) # For aesthetics
 
 # Load data 
-raw_data <- gapminder
+raw_data <- stat242::project_data
 ```
 
-## Exploratory Data Analysis \& Data Visualization
 
-We begin our study of the `gapminder` data with some exploratory data analysis. This particular data set has 1704 rows and 6 columns. The variables are `country`, `continent`, `year`, `lifeExp`, `pop` and `gdpPercap`. The first few are fairly self-explanatory as to what they represent. For the others, `lifeExp` is the life expectancy of someone born in that country during that specific year, `pop` is the population of the country in the given year and `gdpPercap` is the Gross Domestic Product (GDP) per capita for the given year.
+Part I - Lisa
 
-The analysis shows that there are 142 countries represented and each country is listed 12 times. Data was collected in 5 year increments starting in 1952 and ending in 2007. For the continents, Africa has the highest representation with 52 countries represented. 
+# Exploratory Data Analysis
 
-```{r}
-raw_data %>% 
-  group_by(continent) %>% 
-  summarize(count = n()/12) %>% 
-  kbl(linesep = "", booktabs = TRUE, align = "lc", caption = "") %>% 
-  kable_styling(bootstrap_options = c("striped", "condensed"), latex_options = c("striped", "hold_position"))
-```
+We begin our study of the `project_data` data with some exploratory data analysis. This particular data set has 8840 rows and 8 columns. The variables are `country`, `continent`, `year`, `life_exp`, `population`, `num_phones`, `net_users` and `non_net_users`. The first few are fairly self-explanatory as to what they represent. For the others, `life_exp` is the life expectancy of someone born in that country during that specific year, and `population` is the population of the country in the given year.
 
-Summaries of `gdpPercap` and `lifeExp` for each continent show about what we expect with the lowest values coming from Africa. 
+For This presentation, we will be focusing on the relationship between life expectancy and the number of internet users in a given country. First, let's examine net_users by continent:
+
 
 ```{r}
-ggplot(raw_data, aes(gdpPercap, continent))+
+ggplot(raw_data, aes(net_users, continent))+
   geom_boxplot(color = IMSCOL["blue", "full"])+
   theme_minimal()+
   stat_summary(fun = mean, geom = "point", col = IMSCOL["red", "full"])+
@@ -50,15 +45,40 @@ ggplot(raw_data, aes(gdpPercap, continent))+
                position = position_nudge(x = 5000, y = 0.5), 
                aes(label = paste("Mean: ", round(..x.., digits = 2))))+
   labs(
-    title = "GDP per Capita", 
-    subtitle = "by continent, 1952 - 2007", 
-    x = "GDP per Capita",
+    title = "Net Users", 
+    subtitle = "by continent, 1979 - 2018", 
+    x = "Net Users",
     y = "Continent", 
-    caption = "Source: Gapminder"
-  )
+    caption = "Source: Project Data"
+  ) 
 ```
+
+Let's remove some of the outliers to make this a bit easier to read:
+
 ```{r}
-ggplot(raw_data, aes(lifeExp, continent))+
+ggplot(raw_data, aes(net_users, continent))+
+  geom_boxplot(color = IMSCOL["blue", "full"])+
+  theme_minimal()+
+  stat_summary(fun = mean, geom = "point", col = IMSCOL["red", "full"])+
+  stat_summary(fun = mean, geom = "text", col = IMSCOL["red", "full"],
+               position = position_nudge(x = 5000, y = 0.5), 
+               aes(label = paste("Mean: ", round(..x.., digits = 2))))+
+  labs(
+    title = "Net Users", 
+    subtitle = "by continent, 1979 - 2018", 
+    x = "Net Users",
+    y = "Continent", 
+    caption = "Source: Project Data"
+  ) +
+  xlim(1,200000000)
+```
+
+It's quite clear even after removing a good number of the outlying data, that there are many extreme values across all continents, and most of the data lie on the lower side of the spectrum.
+
+Now, let's take a look at life_exp:
+
+```{r}
+ggplot(raw_data, aes(life_exp, continent))+
   geom_boxplot(color = IMSCOL["blue", "full"])+
   theme_minimal()+
   stat_summary(fun = mean, geom = "point", col = IMSCOL["red", "full"])+
@@ -67,353 +87,158 @@ ggplot(raw_data, aes(lifeExp, continent))+
                aes(label = paste("Mean: ", round(..x.., digits = 2))))+
   labs(
     title = "Life Expectancy", 
-    subtitle = "by continent, 1952 - 2007", 
+    subtitle = "by continent, 1979 - 2018", 
     x = "Life Expectancy",
     y = "Continent", 
-    caption = "Source: Gapminder"
+    caption = "Source: Project Data"
   )
 ```
 
-At this point, two continents seem to stand out: Oceania and Europe. Both continents have the highest average GDP per capita and life expectancy. Since Oceania only has two countries worth of data, namely Australia and New Zealand, Europe seems to be of more interest. We will end up focusing on Europe for the latter part of this study but will still include all continents in the next section. 
+Overall there is a lot less variation compared to the data for net_users. Most continents have a mean life expectancy hovering around the high 60s/low 70s, apart from africa with a mean of about 58.
 
-## Data Visualization and Linear Modeling
+Part II -Eric
 
-Here we begin to narrow our focus to life expectancy and GDP per capita. A scatterplot will show if there appears to be some relationship between the two variables. 
+# Data Visualization 
+
+Now, let's go through a few plots to provide some context.
+
+### A Scatterplot of net_users v year
 
 ```{r}
-ggplot(raw_data, aes(gdpPercap, lifeExp, size = pop/10^6))+
-  geom_point(alpha = 0.2, color = IMSCOL["blue", "full"])+
-  facet_wrap(~continent)+
+ggplot(project_data, aes(year, net_users, color = as.factor(continent)))+
+  theme_clean()+
+  geom_point()
+```
+The scatter plot shows the sharpest increase of internet users in Asia, starting around 2005. There is also a dramatic increase in North America, which started much earlier, around 1995. Other continents, however, only showed a steady increase of users beginning in the late 90s.
+
+### Extra Scatterplot life_exp v year
+
+```{r}
+ggplot(project_data, aes(year, life_exp, color = as.factor(continent))) +
+  theme_clean()+
+  geom_point()
+```
+This plot shows a very steady increase in life expectancy across all continents between 1979 and 2018. From the distribution you can tell that Africa has almost exclusively the lowest life expectancy, while the other continents tend to vary a bit more.
+
+### Life Expectancy v net users
+Now, let's combine the two graphs, again coloring by continent:
+
+```{r}
+ggplot(project_data, aes(net_users, life_exp, color = as.factor(continent))) +
+  theme_clean()+
+  geom_point()
+```
+While most of the data are consolidated to the extreme left of the scale, some correlation can be seen, especially in North America and Asia.
+
+### Separated by continent
+
+Let's look at this data again, separated by continent.
+
+```{r}
+
+# filter by continent
+asia <- project_data %>%
+  filter(continent=="Asia")
+africa <- project_data %>%
+  filter(continent=="Africa")
+europe <- project_data %>%
+  filter(continent=="Europe")
+s_amer  <- project_data %>%
+  filter(continent=="South America")
+n_amer <- project_data %>%
+  filter(continent=="North America")
+oceania <- project_data %>%
+  filter(continent=="Oceania")
+
+
+# create plots for each continent
+asia_plot <- ggplot(asia, aes(net_users, life_exp))+
+  geom_point(color = "#C59900")+
   labs(
-    title = "Life Expectancy v. GDP per Capita by Continent",
-    subtitle = "1952 - 2007",
-    size = "Population (millions)",
-    x = "GDP per Capita",
-    y = "Life Expectancy",
-    caption = "Source: Gapminder"
+    title = "Asia",
+    x = "Internet Users (millions)",
+    y = "Life Expectancy"
   )+
-  theme_minimal()+ 
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
-```
+  theme(axis.text.x = element_text(angle = 45))
 
-As we can see, the presence of a relationship is dependent on which continent we are looking at. Visually, Africa has the lowest correlation and Oceania has the highest. As mentioned in the previous section, we only have two countries worth of data for Oceania and both countries are well developed. This is likely the cause for such a high correlation. Specific correlations are below. 
 
-```{r}
-get_correlation(data = raw_data %>% group_by(continent), 
-                formula = lifeExp ~ gdpPercap) %>% 
-  kbl(linesep = "", booktabs = TRUE, align = "lc", caption = "") %>% 
-  kable_styling(bootstrap_options = c("striped", "condensed"), latex_options = c("striped", "hold_position"))
-```
-
-Our visual analysis was almost spot on; Asia actually has a lower correlation than Africa. As expected, Oceania is the highest. Europe is the second highest correlation and has a much higher number of contributing countries. Europe, the Americas and - to some extent - Asia appear to have a *tipping point* where there isn't much of a relationship before a certain GDP per capita but afterwards there is a strong relationship. We'll shift our focus to see if we can identify the tipping points in Europe and the Americas, try to identify *why* the tipping point exists and whether or not we can remove those points and improve the fit of a linear model. 
-
-```{r}
-ggplot(raw_data %>% filter(continent == "Europe" | continent == "Americas"), aes(gdpPercap, lifeExp, color = factor(year)))+
-  facet_wrap(~continent)+
-  geom_point(alpha = 0.5)+
-  geom_vline(xintercept = 5000, color = IMSCOL["red" , "full"])+
-  scale_color_viridis_d()+
+africa_plot <- ggplot(africa, aes(net_users, life_exp))+
+  geom_point(color = "#F8766D")+
   labs(
-    title = "Life expectancy v GDP per capita",
-    subtitle = "1952 - 2007",
-    color = "Year",
-    x = "GDP per Capita",
-    y = "Life Expectancy")+
-  theme_minimal()+ 
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
-```
+    title = "Africa",
+    x = "Internet Users (millions)",
+    y = "Life Expectancy"
+  )+
+  theme(axis.text.x = element_text(angle = 45))
 
-Year seems to play a minor role, but not big enough to be the cause of the tipping point. The vertical red line on the charts is a GDP per capita of \$5000. This is a clear tipping point for Europe, a little less so for the Americas. Here, we filter out GDP per capita below this point for Europe, recalculate the correlation and compare to the full correlation. 
-
-```{r}
-europe_filtered <- raw_data %>% 
-  filter(continent == "Europe") %>% 
-  filter(gdpPercap >= 5000)
-
-europe <- raw_data %>% 
-  filter(continent == "Europe") 
-
-small_cor <- get_correlation(data = europe_filtered, 
-                formula = lifeExp ~ gdpPercap) %>% 
-  mutate(category = "Limited to GDP per capita at or above $5000", .before = cor)
-
-full_cor <- get_correlation(data = europe, 
-                            formula = lifeExp ~ gdpPercap) %>% 
-  mutate(category = "Including GDP per capita below $5000", .before = cor)
-
-
-full_join(small_cor, full_cor) %>% 
-  kbl(linesep = "", booktabs = TRUE, align = "lc", caption = "") %>% 
-  kable_styling(bootstrap_options = c("striped", "condensed"), latex_options = c("striped", "hold_position"))
-```
-
-Removing low GDP per capita values **does** improve the fit of a model. However, we haven't identified a cause. The scatterplot above colored by year shows that there is some older data that fits in with the newer data. The original scatterplot of this section shows that population is not a large factor either. With the information we have in this particular data set, there are no other possible causes for the tipping point. As such, we will keep all of the data point to build our model. Finding the cause of the low GDP data would be a great place for further analysis.
-
-Focusing on Europe, we can plot a least squares regression model over the scatterplot. The equation for the regression line is $\hat{y} = 65.3 + 0.000453x$.
-
-```{r}
-ggplot(raw_data %>% filter(continent == "Europe"), aes(gdpPercap, lifeExp))+
-  geom_point(alpha = 0.5, color = IMSCOL["blue", "full"])+
-  geom_smooth(method = "lm", se = FALSE, color = IMSCOL["red" , "full"])+
+euro_plot <- ggplot(europe, aes(net_users, life_exp))+
+  geom_point(color = "#39B600")+
   labs(
-    title = "Life expectancy v GDP per capita",
-    subtitle = "1952 - 2007",
-    x = "GDP per Capita",
-    y = "Life Expectancy")+
-  theme_minimal()+ 
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+    title = "Europe",
+    x = "Internet Users (millions)",
+    y = "Life Expectancy"
+  )+
+  theme(axis.text.x = element_text(angle = 45))
 
-life_gdp_mod <- lm(formula = lifeExp ~ gdpPercap, 
-                   data = europe)
+s_am_plot <- ggplot(s_amer, aes(net_users, life_exp))+
+  geom_point(color = "#FF61C9")+
+  labs(
+    title = "S America",
+    x = "Internet Users (millions)",
+    y = "Life Expectancy"
+  )+
+  theme(axis.text.x = element_text(angle = 45))
 
-pred <- linear_model_prediction(life_gdp_mod,52456)
-pred_2 <- linear_model_prediction(life_gdp_mod,40299)
+n_am_plot <- ggplot(n_amer, aes(net_users, life_exp))+
+  geom_point(color = "#00C0B8")+
+  labs(
+    title = "N America",
+    x = "Internet Users (millions)",
+    y = "Life Expectancy"
+  )+
+  theme(axis.text.x = element_text(angle = 45))
 
+ocea_plot <- ggplot(oceania, aes(net_users, life_exp))+
+  geom_point(color = "#00ABFD")+
+  labs(
+    title = "Oceania",
+    x = "Internet Users (millions)",
+    y = "Life Expectancy"
+  )+
+  theme(axis.text.x = element_text(angle = 45))
+
+# combine plots
+asia_plot + africa_plot + euro_plot + s_am_plot + n_am_plot + ocea_plot+
+  plot_annotation(title = "Life Expectancy v. Internet Users by Continent",
+                  subtitle = "1979 - 2018",
+                  caption = "Source: Gapminder")
 ```
+The distinction by continent helps us more clearly see the correlation of the two variables, despite data consolidation on the left.
 
-Since over a decade has passed since this data was generated, we can use it to make predictions and check what actually happened as a way to check how accurate the model is. In 2020, the GDP per capita in the Netherlands was \$52456. Our model would predict a life expectancy of 89.1 years in the Netherlands in 2020. Actual life expectancy was 82.78. Our model over predicted by approximately seven years. France had a GDP per capita of \$40299 in 2020, predicting a life expectancy of 83.6 years. The actual life expectancy in France in 2020 was 83.13. Our model was within six months! Another area where additional research could be done is comparing *all* European countries in 2020 to the model in order to get a better idea of how accurate this is. 
 
-## Statistical Inference
+Part III - Joana
 
-Let's take a step back and consider the tipping point for our linear model. We significantly increased the model's correlation when we removed the countries with a GDP per capita below \$5000. We'll run two hypothesis tests: one to determine if that is an unusually low GDP per capita and another to see if the predicted life expectancy would be unusually low. 
+# Linear Modeling
 
-### GDP per capita \& life expectancy tests
-```{r}
-pred_3 <- linear_model_prediction(life_gdp_mod, 5000)
+## The focus here will be comparing Life Expectancy and Net Users Globally and the relationship between these two variables will be analyzed using a scatterplot.
 
-total <- europe %>% 
-  summarize(count = n())
-
-t_gdp <- (5000-mean(europe$gdpPercap))/(sd(europe$gdpPercap))
-t_gdp_tbl <- tibble(p_value = pt(t_gdp, total$count-1, lower.tail = TRUE), 
-                    stat = "GDP per capita")
-
-t_life <- (pred_3-mean(europe$lifeExp))/(sd(europe$lifeExp))
-t_life_tbl <- tibble(p_value = pt(t_life, total$count-1, lower.tail = TRUE),
-                     stat = "Life Expectancy")
-
-full_join(t_gdp_tbl, t_life_tbl) %>% 
-  kbl(linesep = "", booktabs = TRUE, align = "lc", caption = "") %>% 
-  kable_styling(bootstrap_options = c("striped", "condensed"), latex_options = c("striped", "hold_position"))
-```
-
-Since both p-values are above 0.05, we can conclude that the results of both tests are fail to reject the null hypothesis. We do not have enough evidence to support the claim that a GDP per capita of less than \$5000 is unusually low in Europe or to support the claim that a life expectancy of 67.6 is unusually low in Europe. 
-
-### Proprotional test on life expectancy
-
-Since Europe had the second highest average life expectancy, we will test some claims about the proportion of European countries with high and low life expectancy compared to the global proportion. For reference, the global average life expectancy is 59.47 years.
-
-The first test will be to determine if the proportion of European countries with a life expectancy higher than the global average is different from the proportion of non-European countries with a life expectancy higher than the global average. 
+### Build model 
 
 ```{r}
-g_avg_life <- raw_data %>% 
-  summarize(mean = mean(lifeExp))
-
-cat_test_data <- raw_data %>% 
-  mutate(is_greater_60 = 
-           case_when(
-             lifeExp >= g_avg_life$mean ~ 1,
-             lifeExp < g_avg_life$mean ~ 0
-           ),
-         samp =
-           case_when(
-             continent == "Europe" ~ "Europe",
-             TRUE ~ "Global"
-           )
-  ) %>% 
-  select(samp, is_greater_60) %>% 
-  group_by(samp) %>% 
-  summarize(count = n(),
-            prop_greater_60 = sum(is_greater_60)/count)
-  
-euro_prop <- cat_test_data %>% 
-  filter(samp == "Europe")
-
-global_prop <- cat_test_data %>% 
-  filter(samp != "Europe")
-  
-# need 2 sample test
-
-test_stat <- categorical_z(
-  euro_prop$prop_greater_60, 
-  global_prop$prop_greater_60,
-  360
-)
-
-p_val <- pnorm(test_stat, lower.tail = FALSE)
-
-```
-
-The hypotheses are: 
-
-$H_0: p =$ `r global_prop$prop_greater_60` 
-
-$H_a: p >$  `r global_prop$prop_greater_60`
-
-This test has a p-value of $2.93 \times 10^{-105}$ which is essentially 0. Then we reject the null hypothesis. We do have enough data to support the claim that the proportion of European countries with a life expectancy above the global average is higher than the proportion of non-European countries with a life expectancy above the global average. 
-
-## Conclusion
-
-Compared to the globe as a whole, Europe has a higher average life expectancy and a higher proportion of countries above the global average life expectancy. Additionally, life expectancy is strongly correlated to GDP per capita. Our linear model showed a correlation of 0.78 and did fairly well at predicting data from 2020 - over a decade beyond the models original domain. 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Group Data
-group_eda:
-```{r}
-#Eric code
-#Five number summary grouped by continents for life expectancy
-life_exp_summary <- project_data %>% 
-  group_by(continent) %>% 
-  summarize(five_num = fivenum(life_exp),
-            num_countries = n()/12) %>% 
-  mutate(name = c("min", "q1", "med", "q3", "max")) %>% 
-  pivot_wider(names_from = name, 
-              values_from = five_num)
-
-#Five number summary across entire globe for life expectancy
-global_life_exp_summmary <- project_data %>% 
-  summarize(five_num = fivenum(life_exp))
-
-
-#Mean and sd for life expectancy
-life_stats_by_country <- project_data %>% 
-  group_by(country) %>% 
-  summarize(life_mean = mean(life_exp),
-            life_sd = sd(life_exp))
-
-life_stats_by_year <- project_data %>% 
-  group_by(year) %>% 
-  summarize(life_mean = mean(life_exp, na.rm=TRUE),
-            life_sd = sd(life_exp, na.rm=TRUE))
-
-#Lisa code
-#Five number summary by continent for net users
-gdp_summary <- project_data %>% 
-  group_by(continent) %>% 
-  summarize(five_num = fivenum(net_users),
-            num_countries = n()/12) %>% 
-  mutate(name = c("min", "q1", "med", "q3", "max")) %>% 
-  pivot_wider(names_from = name, 
-              values_from = five_num)
-
-#Five number summary for net users globally across all years
-global_gdp_summmary <- project_data %>% 
-  summarize(five_num = fivenum(net_users))
-
-#Mean and standard deviation for Net Users
-life_stats <- project_data %>% 
-  group_by(country) %>% 
-  summarize(net_users_mean = mean(net_users),
-            net_users_sd = sd(net_users))
-#Mean and standard deviation for Non Net Users
-pop_stats <- project_data %>% 
-  group_by(country) %>% 
-  summarize(non_net_users_mean = mean(non_net_users),
-            non_net_users_sd = sd(non_net_users))
-
-#Joana code
-#Mean and standard deviation for num_phones by country 
-num_phones <- project_data %>% 
-  group_by(country) %>% 
-  summarize(num_phones_mean = mean(num_phones, na.rm = TRUE),
-            num_phones_sd = sd(num_phones, na.rm = TRUE))
-
-#Five number summary for num_phones for each country across all years
-num_phones_5 <- project_data %>% 
-  group_by(country) %>% 
-  summarize(five_num = fivenum(num_phones)) %>% 
-  mutate(name = c("min", "q1", "med", "q3", "max")) %>% 
-  pivot_wider(names_from = name, 
-              values_from = five_num)
-
-#Stuart Code
-#Means within continents for num_phones and population
-continentMeans <- project_data %>% 
-  group_by(continent) %>%
-  summarize(cellPhonesMean = mean(num_phones, na.rm = TRUE),
-            populationMean = mean(population, na.rm = TRUE))
-
-#Five number summaries grouped by continents for num_phones and population
-continentFive <- project_data %>% 
-  group_by(continent) %>% 
-  summarize(phoneFive = fivenum(num_phones),
-            num_countries = n()/12,
-            populationFive = fivenum(population),
-            num_countries = n()/12) %>% 
-  mutate(name = c("min", "q1", "med", "q3", "max")) %>% 
-  pivot_wider(names_from = name,
-              values_from = c(phoneFive, populationFive))
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-StatTeam6_lm
-```{r}
-# Load packages --------------------------------------------------------------
-
-library(ggplot2)
-library(ggthemes)
-library(dplyr)
-library(moderndive)
-library(stat242)
-
-# Load data and plot from part 2 ---------------------------------------------
-source(here::here("StatTeam6_data-viz.R"))
-project_data <- stat242::project_data
-
-# Check correlation ----------------------------------------------------------
-
-
-get_correlation(data = project_data %>% group_by(continent), 
-                formula = life_exp[!is.na(life_exp)] ~ net_users[!is.na(net_users)])
-
-
-# Build model ----------------------------------------------------------------
-
 life_net_mod <- lm(formula = life_exp ~ net_users, 
                    data = project_data)
+```
 
-# Get the regression table
+### Get the regression table
+
+```{r}
 reg_table <- tibble(get_regression_table(life_net_mod))
+```
 
-# Plot regression model
+### Plot regression model
+
+```{r}
+
 ggplot(project_data, aes(net_users, life_exp, size = population/10^6))+
   geom_point(alpha = 0.2)+
   geom_smooth(method = "lm", se = FALSE, show.legend = FALSE)+
@@ -428,9 +253,26 @@ ggplot(project_data, aes(net_users, life_exp, size = population/10^6))+
   theme_economist()+ # from ggthemes
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 
-# Since the size of the points is the population, its reasonable to 
-# guess that the aparent outliers are the same country. Let's check
-# with a facet wrap by year.
+```
+
+The scatterplot indicates that there is a positive linear relationship between Life Expectancy and the number of Net Users Globally. Visually, it appears that as the life expectancy of the population (in millions) increases, the number of net users increases as well. Additionally, since the number of net users are recorded globally, it is important to specify which regions or continents we are analyzing. The continents in question include Africa, Asia, Europe, North America, Oceania, and South America. A correlation (Cor) value has been recorded below for each continent respectively to portray the (strength of the) relationship between the two variables in question.
+
+
+```{r}
+get_correlation(data = project_data %>% group_by(continent),
+                formula = life_exp[!is.na(life_exp)] ~ net_users[!is.na(net_users)])
+
+
+```
+
+As we can see from the table, Oceania has the highest correlation and Asia has the lowest correlation. Additionally, Europe and North America have almost identical correlations. Similarly, Africa and South America have very similar correlations.
+ 
+Furthermore, it is worth considering how the presence of outliers influences the correlation of a continent. From the graph above we can see that there is an outlier, as indicated by the small cluster of dots below and toward the middle of the regression line. We know that visually, the size of the points is the population and can assume that the outliers are the same country. The presence of the outlier(s) likely contributes to the significantly lower correlation of Asia compared to the other continents, and finding which country in Asia corresponds to the outlier, and consequently removing it, can increase the correlation of Asia. Analysis of a facet wrap graph can help with this task.
+
+The time frame throughout which our data was recorded is the span of years from 1979 to 2018 as seen in the facet wrap graph below. 
+
+```{r}
+
 ggplot(project_data, aes(net_users, life_exp, size = population/10^6))+
   geom_point(alpha = 0.2)+
   geom_smooth(method = "lm", se = FALSE, show.legend = FALSE)+
@@ -446,22 +288,42 @@ ggplot(project_data, aes(net_users, life_exp, size = population/10^6))+
   theme_economist()+ # from ggthemes
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 
-# This suggests it is one country. Let's remove it and rerun the analysis 
-# to see if it improves. 
+```
 
-# It's China and India! 
 
+Zooming in on the facet wrap graph we can see that the three-dot-cluster that make up the outlier, appear in the years 2016-2018. Furthermore, the size of the dot under these three years corresponds to a small population according to the key at the top of the graph. Looking at the number of net user associated with the outlier is approximately 4.5 x 108.
+
+Knowing this information, we can find which country in the project_data table contains these parameters and can identify which country is the outlier.
+
+
+```{r}
+
+View(project_data)
+
+```
+
+
+We conclude that the outlier is India. It is tabulated under in the year 2018, is part of the continent Asia, and contains 4.71 x 108 net users. This confirms the descriptions we observed earlier from the facet wrap graph.
+ 
+We can now write code to exclude India from the dataset and recalculate the correlation of Asia.
+
+
+```{r}
 project_data_2 <- project_data %>% 
-  filter(country != "China")
-
-project_data_2 <- project_data_2 %>% 
   filter(country != "India")
 
-get_correlation(project_data_2, life_exp ~ net_users)
+get_correlation(project_data_2, life_exp ~ net_users,na.rm=TRUE)
 
-project_data_2_model <- lm(life_exp ~ net_users, data = project_data_2)
+```
 
-project_data_2_model_summary <- tibble(get_regression_table(project_data_2_model))
+
+The correlation of Asia is now higher by approximately 0.098 units than the original as observed in the table above. There is now a stronger relationship between Life Expectancy and number of Net Users in Asia.
+ 
+ 
+Finally, recreating the scatterplot of our data with the new correlation lacking India, we see that the points are more closely clustered around the regression line and the outlier dot(s) are missing. The confirmation that there is a relationship between Life Expectancy and Net Users Globally stands.
+
+
+```{r}
 
 ggplot(project_data_2, aes(net_users, life_exp, size = population/10^6))+
   geom_point(alpha = 0.2)+
@@ -481,168 +343,22 @@ ggplot(project_data_2, aes(net_users, life_exp, size = population/10^6))+
 
 
 
+Part IV - Stuart
 
+### Prediction using model from part 3
+## What would life expectancy be in a South American country in the year 6000?
 
+We wanted to look at what the expected life expectancy would be in the year 6000, based on the linear model we could create with the current data.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-StatTeam6_data-viz
 ```{r}
-#Group Submission Part II
-#Lisa, Eric, Joana, Stuart
 
-library(dplyr) # For data wrangling
-library(tidyr) # For data tidying
-library(ggthemes) # For presentation plots
-library(ggplot2) # For plotting data
-library(stat242) # For data
-library(patchwork) # For aesthetics
+pred <- linear_model_prediction(life_net_mod, 6000)
 
-#Group scatterplot
-# Life Expectancy v net users
-asia <- project_data %>%
-  filter(continent=="Asia")
-africa <- project_data %>%
-  filter(continent=="Africa")
-europe <- project_data %>%
-  filter(continent=="Europe")
-s_amer  <- project_data %>%
-  filter(continent=="South America")
-n_amer <- project_data %>%
-  filter(continent=="North America")
-oceania <- project_data %>%
-  filter(continent=="Oceania")
-
-asia_plot <- ggplot(asia, aes(net_users, life_exp))+
-  geom_point()+
-  labs(
-    x = "Internet Users (millions)",
-    y = "Life Expectancy"
-  )+
-  theme(axis.text.x = element_text(angle = 45))
-
-africa_plot <- ggplot(africa, aes(net_users, life_exp))+
-  geom_point()+
-  labs(
-    x = "Internet Users (millions)",
-    y = "Life Expectancy"
-  )+
-  theme(axis.text.x = element_text(angle = 45))
-
-euro_plot <- ggplot(europe, aes(net_users, life_exp))+
-  geom_point()+
-  labs(
-    x = "Internet Users (millions)",
-    y = "Life Expectancy"
-  )+
-  theme(axis.text.x = element_text(angle = 45))
-
-s_am_plot <- ggplot(s_amer, aes(net_users, life_exp))+
-  geom_point()+
-  labs(
-    x = "Internet Users (millions)",
-    y = "Life Expectancy"
-  )+
-  theme(axis.text.x = element_text(angle = 45))
-
-n_am_plot <- ggplot(n_amer, aes(net_users, life_exp))+
-  geom_point()+
-  labs(
-    x = "Internet Users (millions)",
-    y = "Life Expectancy"
-  )+
-  theme(axis.text.x = element_text(angle = 45))
-
-ocea_plot <- ggplot(oceania, aes(net_users, life_exp))+
-  geom_point()+
-  labs(
-    x = "Internet Users (millions)",
-    y = "Life Expectancy"
-  )+
-  theme(axis.text.x = element_text(angle = 45))
-
-asia_plot + africa_plot + euro_plot + s_am_plot + n_am_plot + ocea_plot+
-  plot_annotation(title = "Life Expectancy v. Internet Users by Continent",
-                  subtitle = "1979 - 2018",
-                  caption = "Source: Gapminder")
-
-# A Scatterplot of num_phones v year
-ggplot(project_data, aes(year, num_phones))+
-  geom_point()
-
-## Extra Scatterplot Net_users v Year
-ggplot(project_data, aes(year, net_users))+
-  geom_point()
 ```
 
+## Test: is this significantly  lower from the average?
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-StatTeam6_nhst
 ```{r}
-#Stat Team 6
-#Load Packages
-
-library(openintro)
-library(dplyr)
-library(tidyr)
-library(infer)
-library(ggplot2)
-
-# Prediction using model from part 3 --------------------------------------
-# What would life expectancy be in a South American country in the year 6000?
-
-pred <- linear_model_prediction(life_year_mod, 6000)
-
-# Test: is this significantly lower from the average?
-
 test_stat <- numeric_z(
   x = pred,
   mu = mean(s_amer$life_exp),
@@ -650,16 +366,15 @@ test_stat <- numeric_z(
 )
 
 pnorm(test_stat, lower.tail = TRUE)
+```
 
-# Since the p-value is greater than 0.05, we fail to reject the null
-# hypothesis. A South American country in the year 6000
-# will not have an unusually low life expectancy.
+Our p-value is greater than 0.05, we fail to reject the null hypothesis. Therefore we conclude, a South American country in the year 6000 will not have an unusually low life expectancy.
 
-# Proportion net users of a country with rest of world -------------------
-# Is the proportion in Mexico with internet users over 1000 in the year 2015 
-# significantly different.
-# than the proportion of internet users with the rest of the globe?
+## Proportion net users of a country with rest of world 
 
+We wanted to look at a country in North America, and compare the proportion of internet users with the rest of the globe. Is the proportion in Mexico with internet users over 1000 in the year 2015 significantly different than the proportion of internet users with the rest of the globe?
+
+```{r}
 group_test_data <- project_data %>% 
   filter(year == 2015 & !is.na(net_users)) %>%
   mutate(is_greater_1000 = 
@@ -691,8 +406,6 @@ test_stat_2 <- categorical_z(
 )
 
 pnorm(test_stat_2, lower.tail = FALSE)
-
-# The p-value is greater than 0.05 so we fail to reject the null hypothesis.
-## The proportion of net users in Mexico with net users above 1000 
-# in the year 2015 is significantly different from the rest of the globe.
 ```
+
+The p-value is greater than 0.05 so we fail to reject the null hypothesis. Therefore we conclude, the proportion of net users in Mexico with net users above 1000 in the year 2015 is significantly different from the rest of the globe.
