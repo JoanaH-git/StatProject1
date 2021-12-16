@@ -33,7 +33,17 @@ Part I - Lisa
 
 We begin our study of the `project_data` data with some exploratory data analysis. This particular data set has 8840 rows and 8 columns. The variables are `country`, `continent`, `year`, `life_exp`, `population`, `num_phones`, `net_users` and `non_net_users`. The first few are fairly self-explanatory as to what they represent. For the others, `life_exp` is the life expectancy of someone born in that country during that specific year, and `population` is the population of the country in the given year.
 
-For This presentation, we will be focusing on the relationship between life expectancy and the number of internet users in a given country. First, let's examine net_users by continent:
+The analysis shows that there are 221 countries represented and each country is listed 40 times. Data was collected starting in 1979 and ending in 2018. For the continents, Africa has the highest representation with 53 countries represented. 
+
+```{r}
+raw_data %>% 
+  group_by(continent) %>% 
+  summarize(count = n()/40) %>% 
+  kbl(linesep = "", booktabs = TRUE, align = "lc", caption = "", color="black") %>% 
+  kable_styling(bootstrap_options = c("striped", "condensed"), latex_options = c("striped", "hold_position")) 
+```
+
+Summaries of `net_users` and `life_exp` for each continent show about what we expect with the lowest values coming from Africa and Oceania.
 
 
 ```{r}
@@ -94,7 +104,7 @@ ggplot(raw_data, aes(life_exp, continent))+
   )
 ```
 
-Overall there is a lot less variation compared to the data for net_users. Most continents have a mean life expectancy hovering around the high 60s/low 70s, apart from africa with a mean of about 58.
+Overall there is a lot less variation compared to the data for net_users. Most continents have a mean life expectancy hovering around the high 60s/low 70s, apart from africa with a mean of about 58. 
 
 Part II -Eric
 
